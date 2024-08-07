@@ -233,8 +233,7 @@ figcaption, cite {
         \(subtitle)
         \(html)
     <div id="__footer">
-        <div class="label">Automatically converted to Reader Mode</div>
-        \(exitReaderButton)
+       
     </div>
 </div>
 
