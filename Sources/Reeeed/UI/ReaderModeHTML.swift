@@ -229,7 +229,9 @@ figcaption, cite {
 <div id='__content' style='opacity: 0'>
     \(heroHTML)
     
-    <h1>\(escapedTitle)</h1>
+    <!--title block-->
+        <h1>\(escapedTitle)</h1>
+        <!-- end of title block -->
         \(subtitle)
         \(html)
     <div id="__footer">
