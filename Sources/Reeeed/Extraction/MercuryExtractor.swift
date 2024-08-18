@@ -67,8 +67,32 @@ class MercuryExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
     // TODO: queue up simultaneous requests?
     func extract(html: String, url: URL, callback: @escaping Callback) {
         waitUntilReady {
-            let script = "return await Mercury.parse(\(url.absoluteString.asJSString), {html: \(html.asJSString)})"
-
+            let script = """
+            function resolveImageSrcFromSrcSet(doc) {
+                var imgs = Array.from(doc.getElementsByTagName("img"));
+                for (img of imgs) {
+                    if (img.parentNode.tagName == "PICTURE" && img.src == "") {
+                        const pictureElement = img.parentNode;
+                        const sourceElement = pictureElement.querySelector('source');
+                        if (sourceElement) {
+                            const srcSet = sourceElement.getAttribute('srcSet');
+                            const firstUrl = srcSet.split(',')[0].trim().split(' ')[0];
+                            img.src = firstUrl
+                        }
+                    }
+                }
+            }
+            var html =  `\(html.asJSString)`;
+            var fixedHtml = html;
+            if (new URL(\(url.absoluteString.asJSString)).host == "medium.com") {
+                //medium.com lazy loads images. so we try to extract them and set to the image before reading
+                //https://github.com/mozilla/readability/issues/299 
+                var dom = new DOMParser().parseFromString(html, "text/html")
+                resolveImageSrcFromSrcSet(dom)
+                fixedHtml = new XMLSerializer().serializeToString(dom);
+            }
+            return await Mercury.parse(\(url.absoluteString.asJSString), {html: fixedHtml})
+            """
             self.webview.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { result in
                 switch result {
                 case .failure(let err):
