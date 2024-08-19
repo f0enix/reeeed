@@ -81,7 +81,7 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                     }
                 }
             }
-            var html =  `\(html.asJSString)`;
+            var html = \(html.asJSString);
             var dom = new DOMParser().parseFromString(html, "text/html");
             if (new URL(\(url.absoluteString.asJSString)).host == "medium.com") {
                 //medium.com lazy loads images. so we try to extract them and set to the image before reading
