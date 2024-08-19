@@ -82,7 +82,7 @@ class MercuryExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                     }
                 }
             }
-            var html =  `\(html.asJSString)`;
+            var html = \(html.asJSString);
             var fixedHtml = html;
             if (new URL(\(url.absoluteString.asJSString)).host == "medium.com") {
                 //medium.com lazy loads images. so we try to extract them and set to the image before reading
