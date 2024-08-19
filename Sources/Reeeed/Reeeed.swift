@@ -70,7 +70,7 @@ public enum Reeeed {
             throw ExtractionError.DataIsNotString
         }
         let baseURL = response.url ?? url
-        let content = try await Reeeed.extractArticleContent(url: baseURL, html: html)
+        let content = try await Reeeed.extractArticleContent(url: baseURL, html: html, extractor: extractor)
         guard let extractedHTML = content.content else {
             throw ExtractionError.MissingExtractionData
         }
