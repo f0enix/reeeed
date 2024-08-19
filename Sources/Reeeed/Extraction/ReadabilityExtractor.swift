@@ -66,7 +66,7 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
 
     func extract(html: String, url: URL, callback: @escaping Callback) {
         waitUntilReady {
-            let script = "return await parse(\(html.asJSString), \(url.absoluteString.asJSString))"
+            let script = "var dom = new DOMParser().parseFromString(\(html.asJSString), 'text/html'); return await new Readability(dom).parse();"
 
             self.webview.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { result in
                 switch result {
