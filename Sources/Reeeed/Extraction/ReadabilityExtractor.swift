@@ -66,7 +66,30 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
 
     func extract(html: String, url: URL, callback: @escaping Callback) {
         waitUntilReady {
-            let script = "var dom = new DOMParser().parseFromString(\(html.asJSString), 'text/html'); return await new Readability(dom).parse();"
+            let script = """
+            function resolveImageSrcFromSrcSet(doc) {
+                var imgs = Array.from(doc.getElementsByTagName("img"));
+                for (img of imgs) {
+                    if (img.parentNode.tagName == "PICTURE" && img.src == "") {
+                        const pictureElement = img.parentNode;
+                        const sourceElement = pictureElement.querySelector('source');
+                        if (sourceElement) {
+                            const srcSet = sourceElement.getAttribute('srcSet');
+                            const firstUrl = srcSet.split(',')[0].trim().split(' ')[0];
+                            img.src = firstUrl
+                        }
+                    }
+                }
+            }
+            var html =  `\(html.asJSString)`;
+            var dom = new DOMParser().parseFromString(html, "text/html");
+            if (new URL(\(url.absoluteString.asJSString)).host == "medium.com") {
+                //medium.com lazy loads images. so we try to extract them and set to the image before reading
+                //https://github.com/mozilla/readability/issues/299 
+                resolveImageSrcFromSrcSet(dom)
+            }
+            return await new Readability(dom).parse();
+            """
 
             self.webview.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { result in
                 switch result {
