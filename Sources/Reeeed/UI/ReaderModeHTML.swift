@@ -173,9 +173,7 @@ figcaption, cite {
 
 #__content {
     padding: 1.5em;
-    margin: auto;
     margin-top: 5px;
-    max-width: 700px;
 }
 
 @media (prefers-color-scheme: dark) {
