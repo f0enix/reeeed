@@ -63,7 +63,7 @@ public enum Reeeed {
     }
 
     public static func fetchAndExtractContent(fromURL url: URL, theme: ReaderTheme = .init(), extractor: Extractor = .mercury) async throws -> FetchAndExtractionResult {
-        DispatchQueue.main.async { Reeeed.warmup() }
+        DispatchQueue.main.async { Reeeed.warmup(extractor: extractor) }
         
         let (data, response) = try await URLSession.shared.data(from: url)
         guard let html = String(data: data, encoding: .utf8) else {
