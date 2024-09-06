@@ -1,4 +1,5 @@
 import Foundation
+import WebKit
 
 public protocol Logger {
     func info(_ string: String)
@@ -62,14 +63,12 @@ public enum Reeeed {
         }
     }
 
+    @MainActor
     public static func fetchAndExtractContent(fromURL url: URL, theme: ReaderTheme = .init(), extractor: Extractor = .mercury) async throws -> FetchAndExtractionResult {
-        DispatchQueue.main.async { Reeeed.warmup(extractor: extractor) }
+        Reeeed.warmup(extractor: extractor)
         
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard let html = String(data: data, encoding: .utf8) else {
-            throw ExtractionError.DataIsNotString
-        }
-        let baseURL = response.url ?? url
+        let html = try await WebViewManager().extractHTMLFromURL(url)
+        let baseURL = URL(string:"\(url.scheme!)://\(url.host!)")!
         let content = try await Reeeed.extractArticleContent(url: baseURL, html: html, extractor: extractor)
         guard let extractedHTML = content.content else {
             throw ExtractionError.MissingExtractionData
@@ -79,3 +78,60 @@ public enum Reeeed {
         return .init(metadata: extractedMetadata, extracted: content, styledHTML: styledHTML, baseURL: baseURL)
     }
 }
+
+
+private final class WebViewManager: NSObject, WKNavigationDelegate {
+    
+    private var webView: WKWebView!
+    private var continuation: CheckedContinuation<String, Error>?
+
+    override init() {
+        super.init()
+        webView = WKWebView()
+        webView.navigationDelegate = self
+    }
+    
+    @MainActor
+    func extractHTMLFromURL(_ url: URL) async throws -> String {
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+            let request = URLRequest(url: url)
+            webView.load(request)
+        }
+    }
+
+    // MARK: - WKNavigationDelegate
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webView.evaluateJavaScript("document.documentElement.outerHTML.toString()") { [weak self] result, error in
+            if let error = error {
+                self?.continuation?.resume(throwing: error)
+                self?.continuation = nil
+                return
+            }
+            
+            if let html = result as? String {
+                self?.continuation?.resume(returning: html)
+                self?.continuation = nil
+            }
+        }
+    }
+    
+    // Called when the navigation fails with an error
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+    }
+    
+    // Handle content load failure (network issues, etc.)
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        continuation?.resume(throwing: error)
+        continuation = nil
+    }
+    
+    // Return the webview instance to add to a view hierarchy
+    func getWebView() -> WKWebView {
+        return webView
+    }
+}
+
+
