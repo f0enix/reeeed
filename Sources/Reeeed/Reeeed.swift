@@ -64,10 +64,19 @@ public enum Reeeed {
     }
 
     @MainActor
-    public static func fetchAndExtractContent(fromURL url: URL, theme: ReaderTheme = .init(), extractor: Extractor = .mercury) async throws -> FetchAndExtractionResult {
+    public static func fetchAndExtractContent(fromURL url: URL, theme: ReaderTheme = .init(), extractor: Extractor = .mercury, useWebView: Bool = false) async throws -> FetchAndExtractionResult {
         Reeeed.warmup(extractor: extractor)
-        
-        let html = try await WebViewManager().extractHTMLFromURL(url)
+        var htmlString: String?
+        if useWebView {
+            htmlString = try await WebViewManager().extractHTMLFromURL(url)
+        } else {
+           let (data, response) = try await URLSession.shared.data(from: url)
+           htmlString = String(data: data, encoding: .utf8)
+        }
+         guard let html = htmlString else {
+             throw ExtractionError.DataIsNotString
+         }
+       
         let baseURL = URL(string:"\(url.scheme!)://\(url.host!)")!
         let content = try await Reeeed.extractArticleContent(url: baseURL, html: html, extractor: extractor)
         guard let extractedHTML = content.content else {
