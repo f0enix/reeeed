@@ -111,16 +111,18 @@ private final class WebViewManager: NSObject, WKNavigationDelegate {
 
     // MARK: - WKNavigationDelegate
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        webView.evaluateJavaScript("document.documentElement.outerHTML.toString()") { [weak self] result, error in
-            if let error = error {
-                self?.continuation?.resume(throwing: error)
-                self?.continuation = nil
-                return
-            }
-            
-            if let html = result as? String {
-                self?.continuation?.resume(returning: html)
-                self?.continuation = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            webView.evaluateJavaScript("document.documentElement.outerHTML.toString()") { [weak self] result, error in
+                if let error = error {
+                    self?.continuation?.resume(throwing: error)
+                    self?.continuation = nil
+                    return
+                }
+                
+                if let html = result as? String {
+                    self?.continuation?.resume(returning: html)
+                    self?.continuation = nil
+                }
             }
         }
     }
