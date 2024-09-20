@@ -106,6 +106,15 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                 if (titleDiv) 
                     titleDiv.remove();
             }
+            else if (\(url.absoluteString.asJSString).includes('dramanovels.io')) {
+                var banners = dom.querySelectorAll('.pf-wrapper')
+                for (var banner of banners)
+                    banner.remove();
+
+                var ads = dom.querySelectorAll('.PUBFUTURE')
+                for (var ad of ads)
+                    ad.remove();
+            }
             return await new Readability(dom).parse();
             """
             // print(html)
