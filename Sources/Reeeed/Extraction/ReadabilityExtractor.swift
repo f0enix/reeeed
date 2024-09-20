@@ -88,6 +88,7 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                 //https://github.com/mozilla/readability/issues/299 
                 resolveImageSrcFromSrcSet(dom)
             } else if (\(url.absoluteString.asJSString).includes('archive.is') && \(url.absoluteString.asJSString).includes('nytimes.com')) {
+                //remove top keyboard notice
                 let politeDiv = dom.querySelector('div[aria-live="polite"]');
                 if (politeDiv) 
                     politeDiv.remove();
@@ -100,10 +101,14 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                         img.src = firstUrl
                     }
                 }
+                //remove the title since we will be adding it in our reader html
+                let titleDiv = dom.querySelector('article#story h1');
+                if (titleDiv) 
+                    titleDiv.remove();
             }
             return await new Readability(dom).parse();
             """
-
+            // print(html)
             self.webview.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { result in
                 switch result {
                 case .failure(let err):
