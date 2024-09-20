@@ -67,22 +67,38 @@ public enum Reeeed {
     public static func fetchAndExtractContent(fromURL url: URL, theme: ReaderTheme = .init(), extractor: Extractor = .mercury, useWebView: Bool = false) async throws -> FetchAndExtractionResult {
         Reeeed.warmup(extractor: extractor)
         var htmlString: String?
+        guard let host = url.host?.lowercased() else {
+            throw URLError(.badURL)
+        }
+        var baseURL = URL(string:"\(url.scheme!)://\(url.host!)")!
+        var isUsingArchive = host.contains("nytimes.com")
+        var urlToUse = url
+        if isUsingArchive {
+            urlToUse = URL(string:"https://archive.is/newest/\(url)")!
+        }
         if useWebView {
-            htmlString = try await WebViewManager().extractHTMLFromURL(url)
+            htmlString = try await WebViewManager().extractHTMLFromURL(urlToUse)
         } else {
-           let (data, response) = try await URLSession.shared.data(from: url)
+           let (data, response) = try await URLSession.shared.data(from: urlToUse)
            htmlString = String(data: data, encoding: .utf8)
         }
-         guard let html = htmlString else {
-             throw ExtractionError.DataIsNotString
-         }
-       
-        let baseURL = URL(string:"\(url.scheme!)://\(url.host!)")!
-        let content = try await Reeeed.extractArticleContent(url: baseURL, html: html, extractor: extractor)
+        guard let html = htmlString else {
+            throw ExtractionError.DataIsNotString
+        }
+        
+        let content = try await Reeeed.extractArticleContent(url: urlToUse, html: html, extractor: extractor)
         guard let extractedHTML = content.content else {
             throw ExtractionError.MissingExtractionData
         }
-        let extractedMetadata = try? await SiteMetadata.extractMetadata(fromHTML: html, baseURL: baseURL)
+
+        var extractedMetadata = try? await SiteMetadata.extractMetadata(fromHTML: html, baseURL: baseURL)
+        if isUsingArchive {
+            //extract the hero image from the main wwebsite since archive.is image is a website screenshot
+            let (htmlData, response2) = try await URLSession.shared.data(from: url)
+            if let originalWebsiteHtml = String(data: htmlData, encoding: .utf8) {
+                extractedMetadata = try? await SiteMetadata.extractMetadata(fromHTML: originalWebsiteHtml, baseURL: baseURL)
+            }
+        }
         let styledHTML = Reeeed.wrapHTMLInReaderStyling(html: extractedHTML, title: content.title ?? extractedMetadata?.title ?? "", baseURL: baseURL, author: content.author, heroImage: extractedMetadata?.heroImage, includeExitReaderButton: true, theme: theme, date: content.datePublished)
         return .init(metadata: extractedMetadata, extracted: content, styledHTML: styledHTML, baseURL: baseURL)
     }
