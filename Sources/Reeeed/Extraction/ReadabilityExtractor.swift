@@ -83,10 +83,23 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
             }
             var html = \(html.asJSString);
             var dom = new DOMParser().parseFromString(html, "text/html");
-            if (new URL(\(url.absoluteString.asJSString)).host == "medium.com") {
+            if (new URL(\(url.absoluteString.asJSString)).host == 'medium.com') {
                 //medium.com lazy loads images. so we try to extract them and set to the image before reading
                 //https://github.com/mozilla/readability/issues/299 
                 resolveImageSrcFromSrcSet(dom)
+            } else if (\(url.absoluteString.asJSString).includes('archive.is') && \(url.absoluteString.asJSString).includes('nytimes.com')) {
+                let politeDiv = dom.querySelector('div[aria-live="polite"]');
+                if (politeDiv) 
+                    politeDiv.remove();
+
+                var imgs = Array.from(dom.getElementsByTagName('img'));
+                for (img of imgs) {
+                    let srcSet = img.getAttribute('old-srcset');
+                    if (srcSet && img.src.startsWith('/')) {
+                        const firstUrl = srcSet.split(',')[0].trim().split(' ')[0];
+                        img.src = firstUrl
+                    }
+                }
             }
             return await new Readability(dom).parse();
             """
