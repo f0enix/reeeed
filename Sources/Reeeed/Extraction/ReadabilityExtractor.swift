@@ -114,6 +114,11 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                 var ads = dom.querySelectorAll('.PUBFUTURE')
                 for (var ad of ads)
                     ad.remove();
+                
+                let notice = dom.querySelector('.box-notice');
+                if (notice) 
+                    notice.remove();
+                    
             }
             return await new Readability(dom).parse();
             """
