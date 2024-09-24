@@ -80,7 +80,7 @@ public enum Reeeed {
             htmlString = try await WebViewManager().extractHTMLFromURL(urlToUse)
         } else {
            let (data, response) = try await URLSession.shared.data(from: urlToUse)
-           htmlString = String(data: data, encoding: .utf8)
+           htmlString = String(data: data, encoding: data.stringEncoding ?? .utf8)
         }
         guard let html = htmlString else {
             throw ExtractionError.DataIsNotString
@@ -129,6 +129,7 @@ private final class WebViewManager: NSObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             webView.evaluateJavaScript("document.documentElement.outerHTML.toString()") { [weak self] result, error in
+                
                 if let error = error {
                     self?.continuation?.resume(throwing: error)
                     self?.continuation = nil
@@ -136,6 +137,7 @@ private final class WebViewManager: NSObject, WKNavigationDelegate {
                 }
                 
                 if let html = result as? String {
+                    print(html)
                     self?.continuation?.resume(returning: html)
                     self?.continuation = nil
                 }
@@ -162,3 +164,10 @@ private final class WebViewManager: NSObject, WKNavigationDelegate {
 }
 
 
+extension Data {
+    var stringEncoding: String.Encoding? {
+        var nsString: NSString?
+        guard case let rawValue = NSString.stringEncoding(for: self, encodingOptions: nil, convertedString: &nsString, usedLossyConversion: nil), rawValue != 0 else { return nil }
+        return .init(rawValue: rawValue)
+    }
+}
