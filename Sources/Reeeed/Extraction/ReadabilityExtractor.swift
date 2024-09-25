@@ -120,6 +120,12 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                     notice.remove();
                     
             }
+            else if (\(url.absoluteString.asJSString).includes('vma.is/')) {
+                //remove comments which are of type microsoft office tags from the html
+                //these are not visible but impact readable text extraction
+                //<!--[if gte mso 9]><xml>
+               dom.body.innerHTML = dom.body.innerHTML.replace(/<!--\\[if[\\s\\S]*?endif\\]-->/gi, '');
+            }
             return await new Readability(dom).parse();
             """
             // print(html)
