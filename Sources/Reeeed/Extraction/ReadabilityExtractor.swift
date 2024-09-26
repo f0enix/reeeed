@@ -83,7 +83,8 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
             }
             var html = \(html.asJSString);
             var dom = new DOMParser().parseFromString(html, "text/html");
-            if (new URL(\(url.absoluteString.asJSString)).host == 'medium.com') {
+            var host = new URL(\(url.absoluteString.asJSString)).host;
+            if (host == 'medium.com') {
                 //medium.com lazy loads images. so we try to extract them and set to the image before reading
                 //https://github.com/mozilla/readability/issues/299 
                 resolveImageSrcFromSrcSet(dom)
@@ -106,7 +107,7 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                 if (titleDiv) 
                     titleDiv.remove();
             }
-            else if (\(url.absoluteString.asJSString).includes('dramanovels.io')) {
+            else if (host.includes('dramanovels.io')) {
                 var banners = dom.querySelectorAll('.pf-wrapper')
                 for (var banner of banners)
                     banner.remove();
@@ -118,24 +119,34 @@ class ReadabilityExtractor: NSObject, WKUIDelegate, WKNavigationDelegate {
                 let notice = dom.querySelector('.box-notice');
                 if (notice) 
                     notice.remove();
-                    
             }
-            else if (\(url.absoluteString.asJSString).includes('vma.is/')) {
+            else if (host.includes('vma.is')) {
                 //remove comments which are of type microsoft office tags from the html
                 //these are not visible but impact readable text extraction
                 //<!--[if gte mso 9]><xml>
                dom.body.innerHTML = dom.body.innerHTML.replace(/<!--\\[if[\\s\\S]*?endif\\]-->/gi, '');
             }
+            else if (host.includes('qq.com')) {
+                var imgs = Array.from(dom.getElementsByTagName('img'));
+                for (img of imgs) {
+                    if (img.src && img.src.startsWith('data:')){
+                        let dataSrc = img.getAttribute('data-src');
+                        if (dataSrc){
+                            img.src = dataSrc;
+                            img.classList.add("kaboom");
+                        }
+                    }
+                }
+            }
             return await new Readability(dom).parse();
             """
-            // print(html)
             self.webview.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { result in
                 switch result {
                 case .failure(let err):
                     Reeeed.logger.error("Failed to extract: \(err)")
                     callback(nil)
                 case .success(let resultOpt):
-                    Reeeed.logger.info("Successfully extracted: \(resultOpt)")
+                    // Reeeed.logger.info("Successfully extracted: \(resultOpt)")
                     let content = self.parse(dict: resultOpt as? [String: Any])
                     callback(content)
                 }
