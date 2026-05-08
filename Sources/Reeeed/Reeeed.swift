@@ -88,13 +88,7 @@ public enum Reeeed {
         }
 
         var extractedMetadata = try? await SiteMetadata.extractMetadata(fromHTML: html, baseURL: baseURL)
-        if isUsingArchive {
-            //extract the hero image from the main wwebsite since archive.is image is a website screenshot
-            let (htmlData, response2) = try await URLSession.shared.data(from: url)
-            if let originalWebsiteHtml = String(data: htmlData, encoding: .utf8) {
-                extractedMetadata = try? await SiteMetadata.extractMetadata(fromHTML: originalWebsiteHtml, baseURL: baseURL)
-            }
-        }
+        
         let styledHTML = Reeeed.wrapHTMLInReaderStyling(html: extractedHTML, title: content.title ?? extractedMetadata?.title ?? "", baseURL: baseURL, author: content.author, heroImage: extractedMetadata?.heroImage, includeExitReaderButton: true, theme: theme, date: content.datePublished)
         return .init(metadata: extractedMetadata, extracted: content, styledHTML: styledHTML, baseURL: baseURL)
     }
