@@ -71,11 +71,7 @@ public enum Reeeed {
             throw URLError(.badURL)
         }
         var baseURL = URL(string:"\(url.scheme!)://\(url.host!)")!
-        var isUsingArchive = host.contains("nytimes.com")
         var urlToUse = url
-        if isUsingArchive {
-            urlToUse = URL(string:"https://archive.is/newest/\(url)")!
-        }
         if useWebView {
             htmlString = try await WebViewManager().extractHTMLFromURL(urlToUse)
         } else {
